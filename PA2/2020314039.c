@@ -272,20 +272,11 @@ void cmd_execv( char* arg[], char* arg2[], enum SYMBOLS symbol )
         }
         else if ( strcmp( arg[0], "cp" ) == 0 ){
             const char* file1 = arg[1]; // always exist
-            const char* file2 = arg[2]; // cannot be overwritten
-            /* file2 exist test */
-            {
-                struct stat st;
-                if ( stat(file2, &st) == 0 ){ // exist
-                    printf("exist!\n"); // Debug
-                    int gid = getpgrp();
-                    killpg( gid, SIGKILL );
-                }
-            }
+            const char* file2 = arg[2];
             /* copy */
             {
                 int fd1 = open( file1, O_RDONLY );
-                int fd2 = open( file2, O_WRONLY | O_CREAT, 0664 );
+                int fd2 = open( file2, O_WRONLY | O_CREAT | O_TRUNC, 0664 );
                 char* buf;
                 int fSize = 0;
                 {
