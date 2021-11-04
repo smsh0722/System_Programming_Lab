@@ -164,8 +164,8 @@ void cmd_execv( char* arg[], char* arg2[], enum SYMBOLS symbol )
         }
         case OUTPUT_REDIR_APPEND:
         {
-            int dst = open( arg2[0], O_WRONLY | O_CREAT , 0664 );
-            lseek( dst, 0, SEEK_END );
+            int dst = open( arg2[0], O_WRONLY | O_CREAT | O_APPEND, 0664 );
+            // lseek( dst, 0, SEEK_END );
             dup2( dst, 1 ); // stdout redirection
             break;
         }
@@ -271,7 +271,10 @@ void cmd_execv( char* arg[], char* arg2[], enum SYMBOLS symbol )
             close(rfd);
         }
         else if ( strcmp( arg[0], "cp" ) == 0 ){
-
+            const char* file1 = arg[0];
+            const char* file2 = arg[1];
+            int fd1 = open( file1, O_RDONLY );
+            int fd2 = open( file2, O_WRONLY);
         }
     }
     else if ( cmd_type == TYPE3 ){
