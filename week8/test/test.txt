@@ -1,0 +1,9 @@
+total 48
+drwxrwxr-x 2 hong hong  4096 10월 18 23:16 .
+drwxrwxr-x 3 hong hong  4096 10월 18 23:15 ..
+-rwxrwxrwx 1 hong hong  1289 10월 18 23:14 2020314039-9.tar.gz
+-rwxrwxr-x 1 hong hong 17520 10월 18 23:16 ex8
+-rw-rw-r-- 1 hong hong  4039 10월 18 21:48 main.c
+-rw-rw-r-- 1 hong hong  5624 10월 18 23:16 main.o
+-rw-rw-r-- 1 hong hong   200 10월 18 19:24 Makefile
+-rw-rw-r-- 1 hong hong     0 10월 18 23:16 test.txt

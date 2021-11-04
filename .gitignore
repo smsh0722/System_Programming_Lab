@@ -1,0 +1,11 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unigrore all dirs
+!*/
+
+*.out
+*.tar.gz
