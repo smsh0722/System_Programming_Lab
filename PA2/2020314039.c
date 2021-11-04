@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #define SIZE1 6
 #define SIZE2 4
@@ -183,13 +184,91 @@ void cmd_execv( char* arg[], char* arg2[], enum SYMBOLS symbol )
     }
     else if ( cmd_type == TYPE2 ){
         if ( strcmp( arg[0], "head" ) == 0 ){
+            char path[256] = {0};
+            int line = 10;
+            strcpy( path, arg[1] );
+            
+            if ( (arg[3] != NULL)&&(strcmp( arg[1], "-n" ) == 0) ){
+                strcpy( path, arg[3] );
+                line = atoi( arg[2] );
+            }
+            else if ( (arg[3] != NULL)&&(strcmp( arg[2], "-n" ) == 0 ) ){
+                strcpy( path, arg[1] );
+                line = atoi( arg[3] );
+            }
+            
+            int rfd = open( path, O_RDONLY ); // always exist
+            for ( int i = 0; i < line; i++ ){
+                char forbreak = 0; // true = 1, false = 0
+                while ( 1 ){
+                    char c[2] = {0};
+                    if ( read( rfd, c, 1 ) <= 0 ){
+                        forbreak = 1;
+                        break;
+                    }
+                    write( 1, c, sizeof(char) );
 
+                    if ( c[0] == '\n' )
+                        break;
+                }
+                if ( forbreak == 1 )
+                    break;
+            }
+            close(rfd);
         }
         else if ( strcmp( arg[0], "tail") == 0 ){
-
+            char path[256] = {0};
+            int line = 10;
+            strcpy( path, arg[1] );
+            
+            if ( (arg[3] != NULL)&&(strcmp( arg[1], "-n" ) == 0) ){
+                strcpy( path, arg[3] );
+                line = atoi( arg[2] );
+            }
+            else if ( (arg[3] != NULL)&&(strcmp( arg[2], "-n" ) == 0 ) ){
+                strcpy( path, arg[1] );
+                line = atoi( arg[3] );
+            }
+            
+            int rfd = open( path, O_RDONLY ); // always exist
+            char* buf;
+            int size;
+            {
+                struct stat st;
+                stat( path, &st );
+                size = st.st_size;
+                buf = (char*)malloc( sizeof(char)* size );
+            }
+            read(rfd, buf, size );
+            int line_file = 0;
+            for ( int i = 0; i < size; i++ ){
+                if ( buf[i] == '\n' )
+                    line_file++;
+            }
+            for ( int i = 0; i < size; i++ ){
+                if ( line_file > line && buf[i] == '\n' ){
+                    line_file--;
+                    continue;
+                }
+                if ( line_file <= line ){
+                    char c[2] = {0};
+                    c[0] = buf[i];
+                    write(1, c, sizeof(char) );
+                }
+            }
+            close(rfd);
+            free( buf );
         }
         else if ( strcmp( arg[0], "cat" ) == 0 ){
-
+            char path[256] = {0};
+            strcpy( path, arg[1] );
+            
+            int rfd = open( path, O_RDONLY ); // alway exist
+            char* c[2] = {0};
+            while ( read(rfd, c, 1 ) != 0 ){
+                write(1, c, sizeof( char ) );
+            }
+            close(rfd);
         }
         else if ( strcmp( arg[0], "cp" ) == 0 ){
 
