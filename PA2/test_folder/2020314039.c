@@ -377,7 +377,7 @@ void my_excv( char* cmds[], int cmds_i, const int cmds_size )
         if ( pipe_flag == 1 ){
             pipe(fd);
             if ( fork() == 0 ){
-                int tmp_gip = getsid( getpid() ); // Debug
+
                 close(fd[0]);
                 dup2( fd[1], 1 ); // output to next cmd
                 // exec
@@ -413,7 +413,6 @@ int main( void )
         signal( SIGTSTP, term_sig_control );
     }
 
-    int p_gid = getsid(getpid()); // Debug
 
     while(1){
         /* input */
@@ -465,7 +464,7 @@ int main( void )
         if ( fork() == 0 ){
             if ( setsid() < 0 )
                 exit(1);
-            int c_gid = getsid(getpid()); // Debug
+
             my_excv( cmds, 0, cmds_size );
             exit(0);
         }
