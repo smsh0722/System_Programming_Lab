@@ -50,6 +50,11 @@ int main (int argc, char *argv[]) {
 	*
 	*
 	**/ 
+    write( cfd, name, sizeof(char)*strlen(name) );
+    FD_ZERO( &readset );
+    FD_SET( 0, &readset );
+    FD_SET( cfd, &readset );
+    fdmax = cfd;
 
     while (1) {
 
@@ -58,13 +63,36 @@ int main (int argc, char *argv[]) {
 
         copyset = readset;
 
-        if ( /* Insert your code */ < 0 ) {
+        if ( ( fdnum = select( fdmax + 1, &copyset, NULL, NULL, NULL ) ) < 0 ) {
             printf("select() failed.\n");
             exit(4);
         }
 
         /* Insert your code */
+        
+        // send to sever
+        for ( int i = 0; i < fdmax + 1; i++ ){
+            if ( FD_ISSET( i, &copyset ) ){
 
+                if ( i == 0 ){
+                    if ( ( n = read(0, buf, MAXLINE) ) > 0 ){
+                        buf[n-1] = '\0';
+                        if ( strcmp( buf, "quit" ) == 0 )
+                            exit(0);
+                        else
+                            write( cfd, buf, n );
+                    }
+                }
+                else {
+                    // read from server
+                    if ( (n = read( i, temp, MAXLINE ) ) > 0 ){
+                        write(1, temp, n );
+                        write(1, "\n", sizeof(char)*strlen("\n"));
+                    }
+                }
+
+            }
+        }
     }
 
 }
