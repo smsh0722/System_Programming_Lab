@@ -17,7 +17,7 @@ void *thread_montecarlo( void* arg )
         x = rand() / (double)RAND_MAX;
         y = rand() / (double)RAND_MAX;
         rst = x*x + y*y;
-        if ( rst < radius )
+        if ( rst <= radius )
             point_in_circle++;
     }
     
