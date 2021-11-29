@@ -4,8 +4,9 @@
 
 **loop: 30**
 
-The producer puts the number of LOOP in the queue
-The consumer gets the number of LOOP in the queue
+The producer puts the number of LOOP in the queue.
+
+The consumer gets the number of LOOP in the queue.
 
 ![image](https://user-images.githubusercontent.com/65753502/143861769-3fd65eda-8d47-42da-bf7f-ddf7bad2c983.png)
 
