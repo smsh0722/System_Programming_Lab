@@ -157,32 +157,38 @@ void* client_handler( void* args_void )
                     send( connfd, &buffer, sizeof(int), 0 );
                     break;
                 }
+                /* check my seat */
+                if ( args->users[q->user].seat != -1 ){
+                    buffer = -1;
+                    send( connfd, &buffer, sizeof(int), 0 );
+                    break;
+                }
 
                 pthread_mutex_lock( &(args->lock_seat) );
-                if ( args->seats[q->data] != -1 ){ // empty seat
+                if ( args->seats[q->data] == -1 ){ // empty seat
                     args->seats[q->data] = q->user;
                     buffer = q->data;
-                    args->users->seat = q->data;
+                    args->users[q->user].seat = q->data;
                 }
                 else 
                     buffer = -1;
                 pthread_mutex_unlock( &(args->lock_seat) );
-                
+
                 send( connfd, &buffer, sizeof(int), 0 );
                 break;
             }
             case CHECK_RES:
             {
-                buffer = args->users->seat; // default == -1
+                buffer = args->users[q->user].seat; // default == -1
                 send( connfd, &buffer, sizeof(int), 0 );
                 break;
             }
             case CANCEL_RES:
             {
                 pthread_mutex_lock( &(args->lock_seat) );
-                if ( args->users->seat == q->data && args->users->signup != -1 ){
+                if ( args->users[q->user].seat == q->data && args->users[q->user].seat != -1 ){
                     args->seats[q->data] = -1;
-                    args->users->seat = -1;
+                    args->users[q->user].seat = -1;
                     buffer = q->data;
                 }
                 else 
