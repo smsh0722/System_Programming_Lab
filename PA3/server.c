@@ -76,7 +76,7 @@ void* client_handler( void* void_args )
     
     pthread_detach( pthread_self() );
     
-    printf( "client_handler!\n" );
+    printf( "client_handler\n" ); // Debug
     enum actions action;
     q = (query*)malloc( sizeof(query) );
     int logInFlag = -1; // false == -1, true == user#
@@ -227,6 +227,7 @@ void* client_handler( void* void_args )
 
     free(q);
     close( connfd );
+    printf( "Close handler\n" ); // Debug
     return NULL;
 }
 
