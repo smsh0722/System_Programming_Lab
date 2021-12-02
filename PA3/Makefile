@@ -1,5 +1,5 @@
 # Makefile
-TARGET=server
+TARGET=pa3.out
 CXX=gcc
 CXXFLAGS=-Wall
 OBJECTS=server.o
