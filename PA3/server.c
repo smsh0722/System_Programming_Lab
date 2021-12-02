@@ -64,48 +64,66 @@ void* client_handler( void* args_void )
     enum actions action;
     q = (query*)malloc( sizeof(query) );
     char logInFlag = 0; // false == 0, true == 1
+    int buffer; // default == -1
     while ( ( n = read( connfd, q, sizeof(query) ) ) > 0 ){
         printf( "user: %d, action: %d, data: %d\n", q->user, q->action, q->data ); // Debug
+        buffer = -1; // set default
+        action = (enum actions)(q->action);
+
+        /* terminate */
+        if ( action == TERMINATE && q->user == 0 && q->data == 0 ){
+            pthread_mutex_lock( &(args->lock_seat) );
+            send( connfd, args->seats, (MAXSEAT+1)*sizeof(int), 0 );
+            pthread_mutex_unlock( &(args->lock_seat) );
+            break;
+        }
+
+        /* range check */
         if ( q->user > MAXUSER || q->user < MINUSER ){
-            write( connfd, (int*)-1, sizeof(int) );
+            send( connfd, &buffer, sizeof(int), 0 );
             continue;
         }
         if ( q->action > MAXACTION || q->action < MINACTION ){
-            write( connfd, (int*)-1, sizeof(int) );
+            send( connfd, &buffer, sizeof(int), 0 );
             continue;
         }
 
-        action = (enum actions)(q->action);
         /* Not logged in */
         if ( logInFlag == 0 ){
             if ( action != LOGIN ){
-                write( connfd, (int*)-1, sizeof(int) );
+                send( connfd, &buffer, sizeof(int), 0 );
                 continue;
             }
 
+            /* already at another client */
             if ( pthread_mutex_trylock( &(args->lock_users[q->user]) ) != 0 ){
-                write( connfd, (int*)-1, sizeof(int) );
+                send( connfd, &buffer, sizeof(int), 0 );
                 continue;
             }
+
             /* sign up & log in*/
             if ( args->users[q->user].signup == -1 ){
                 args->users[q->user].passcode = q->data;
                 args->users[q->user].signup = 1;
                 logInFlag = 1;
-                write( connfd, (int*)1, sizeof(int) );
+                buffer = 1;
+                send( connfd, &buffer, sizeof(int), 0 );
                 continue;
             }
             /* log in */
             else {
                 if ( args->users[q->user].passcode == q->data ){
                     logInFlag = 1;
-                    write( connfd, (int*)1, sizeof(int) );
+                    buffer = 1;
+                    send( connfd, &buffer, sizeof(int), 0 );
                 }
                 else 
-                    write( connfd, (int*)1, sizeof(int) );
+                    send( connfd, &buffer, sizeof(int), 0 );
                 continue;
             }
         }
+        
+        /* Logged in */
         switch (action)
         {
             case TERMINATE:
@@ -143,8 +161,6 @@ void* client_handler( void* args_void )
 
 int main( int argc, char* argv[] )
 {
-    write( 1, (int*)-1, sizeof(int) );
-    return 0;
     if ( argc != 2 ){
         printf( "Usage: %s <port number>\n", argv[0] );
         exit(1);
