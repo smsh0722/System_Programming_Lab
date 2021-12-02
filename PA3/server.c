@@ -11,12 +11,9 @@
 
 #define MAXLINE 512
 
-const int MAXUSER = 1023;
-const int MINUSER = 0;
-const int MAXACTION = 5;
-const int MINACTION = 0;
-const int MAXSEAT = 255;
-const int MINSEAT = 0;
+const int MAXUSER = 1023; const int MINUSER = 0;
+const int MAXACTION = 5; const int MINACTION = 0;
+const int MAXSEAT = 255; const int MINSEAT = 0;
 
 enum actions {
     TERMINATE = 0,
@@ -27,16 +24,35 @@ enum actions {
     LOGOUT,
 };
 
+/* user     = user ID (0~1023)
+ * action   = actions code (0~5)
+ * data     = field for each action
+ * */
 typedef struct {
     int user;
     int action;
     int data;
 } query;
+
+/* Data for each user
+ * passcode = password
+ * seat     = seat #
+ * signup   = flag for checking signup
+ * */
 typedef struct {
     int passcode;
     int seat;
     char signup;
 } user;
+
+/* Shared data structure
+ * seats        = shared seats array
+ * users        = shared user data, each user access only own data
+ * connfd       = client fd
+ * lock_connfd  = lock for connfd, to prevent modify before change to local variable
+ * lock_seat    = lock for seats array
+ * lock_users[] = lock for each user
+ * */
 typedef struct {
     int* seats;
     user* users;
@@ -46,9 +62,9 @@ typedef struct {
     pthread_mutex_t* lock_users;
 } client_arg;
 
-void* client_handler( void* args_void )
+void* client_handler( void* void_args )
 {
-    client_arg* args = ( (client_arg*)args_void );
+    client_arg* args = ( (client_arg*)void_args );
     int n;
     query* q;
     int connfd;
@@ -57,7 +73,7 @@ void* client_handler( void* args_void )
         connfd = args->connfd;
         pthread_mutex_unlock( &(args->lock_connfd) );
     }
-
+    
     pthread_detach( pthread_self() );
     
     printf( "client_handler!\n" );
@@ -157,20 +173,20 @@ void* client_handler( void* args_void )
                     send( connfd, &buffer, sizeof(int), 0 );
                     break;
                 }
-                /* check my seat */
+                /* Prevent mutiple reservation */
                 if ( args->users[q->user].seat != -1 ){
                     buffer = -1;
                     send( connfd, &buffer, sizeof(int), 0 );
                     break;
                 }
-
+                
                 pthread_mutex_lock( &(args->lock_seat) );
-                if ( args->seats[q->data] == -1 ){ // empty seat
+                if ( args->seats[q->data] == -1 ){ // now trg seat empty
                     args->seats[q->data] = q->user;
                     buffer = q->data;
                     args->users[q->user].seat = q->data;
                 }
-                else 
+                else // trg seat full
                     buffer = -1;
                 pthread_mutex_unlock( &(args->lock_seat) );
 
