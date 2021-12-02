@@ -1,0 +1,12 @@
+#Makefile
+TARGET=assignment1.out
+CXX=gcc
+CXXFLAGS=-Wall
+OBJECTS=2020314039.o
+
+$(TARGET): $(OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJECTS)
+2020314039.o: 2020314039.c
+	$(CXX) $(CXXFLAGS) -c $^
+clean:
+	rm $(OBJECTS) $(TARGET)

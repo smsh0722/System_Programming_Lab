@@ -7,5 +7,9 @@
 # Unigrore all dirs
 !*/
 
+# Unignore makefile
+!Makefile
+
+*.o
 *.out
 *.tar.gz
