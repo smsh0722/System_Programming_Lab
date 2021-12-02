@@ -63,11 +63,24 @@ void* client_handler( void* args_void )
     printf( "client_handler!\n" );
     enum actions action;
     q = (query*)malloc( sizeof(query) );
-    char logInFlag = 0; // false == 0, true == 1
-    int buffer; // default == -1
+    int logInFlag = -1; // false == -1, true == user#
+    int buffer; // default == -1(FAIL)
     while ( ( n = read( connfd, q, sizeof(query) ) ) > 0 ){
         printf( "user: %d, action: %d, data: %d\n", q->user, q->action, q->data ); // Debug
         buffer = -1; // set default
+
+        /* range check (user, action)*/
+        {
+            if ( q->user > MAXUSER || q->user < MINUSER ){
+                send( connfd, &buffer, sizeof(int), 0 );
+                continue;
+            }
+            if ( q->action > MAXACTION || q->action < MINACTION ){
+                send( connfd, &buffer, sizeof(int), 0 );
+                continue;
+            }
+        }
+
         action = (enum actions)(q->action);
 
         /* terminate */
@@ -75,28 +88,14 @@ void* client_handler( void* args_void )
             pthread_mutex_lock( &(args->lock_seat) );
             send( connfd, args->seats, (MAXSEAT+1)*sizeof(int), 0 );
             pthread_mutex_unlock( &(args->lock_seat) );
+            if ( logInFlag != -1 )
+                pthread_mutex_unlock( &(args->lock_users[logInFlag]) );
             break;
         }
 
-        /* range check */
-        if ( q->user > MAXUSER || q->user < MINUSER ){
-            send( connfd, &buffer, sizeof(int), 0 );
-            continue;
-        }
-        if ( q->action > MAXACTION || q->action < MINACTION ){
-            send( connfd, &buffer, sizeof(int), 0 );
-            continue;
-        }
-
         /* Not logged in */
-        if ( logInFlag == 0 ){
+        if ( logInFlag == -1 ){
             if ( action != LOGIN ){
-                send( connfd, &buffer, sizeof(int), 0 );
-                continue;
-            }
-
-            /* already at another client */
-            if ( pthread_mutex_trylock( &(args->lock_users[q->user]) ) != 0 ){
                 send( connfd, &buffer, sizeof(int), 0 );
                 continue;
             }
@@ -105,25 +104,39 @@ void* client_handler( void* args_void )
             if ( args->users[q->user].signup == -1 ){
                 args->users[q->user].passcode = q->data;
                 args->users[q->user].signup = 1;
-                logInFlag = 1;
+                logInFlag = q->user;
+                pthread_mutex_lock( &(args->lock_users[q->user] ) );
                 buffer = 1;
                 send( connfd, &buffer, sizeof(int), 0 );
                 continue;
             }
             /* log in */
             else {
+                /* check passcode */
                 if ( args->users[q->user].passcode == q->data ){
-                    logInFlag = 1;
+                    /* try log in */
+                    if ( pthread_mutex_trylock( &(args->lock_users[q->user]) ) != 0 ){
+                        send( connfd, &buffer, sizeof(int), 0 );
+                        continue;
+                    }
+                    logInFlag = q->user;
                     buffer = 1;
                     send( connfd, &buffer, sizeof(int), 0 );
+                    continue;
                 }
-                else 
+                else {
                     send( connfd, &buffer, sizeof(int), 0 );
-                continue;
+                    continue;
+                }
             }
         }
         
         /* Logged in */
+        if ( logInFlag != q->user ){
+            send( connfd, &buffer, sizeof(int), 0 );
+            continue;
+        }
+
         switch (action)
         {
             case TERMINATE:
@@ -132,23 +145,59 @@ void* client_handler( void* args_void )
             }
             case LOGIN:
             {
-                /* code */
+                // multiple log in -> error
+                send( connfd, &buffer, sizeof(int), 0 );
                 break;
             }
             case RESERVE:
             {
+                /* range check */
+                if ( q->data < MINSEAT || q->data > MAXSEAT ){
+                    buffer = -1;
+                    send( connfd, &buffer, sizeof(int), 0 );
+                    break;
+                }
+
+                pthread_mutex_lock( &(args->lock_seat) );
+                if ( args->seats[q->data] != -1 ){ // empty seat
+                    args->seats[q->data] = q->user;
+                    buffer = q->data;
+                    args->users->seat = q->data;
+                }
+                else 
+                    buffer = -1;
+                pthread_mutex_unlock( &(args->lock_seat) );
+                
+                send( connfd, &buffer, sizeof(int), 0 );
                 break;
             }
             case CHECK_RES:
             {
+                buffer = args->users->seat; // default == -1
+                send( connfd, &buffer, sizeof(int), 0 );
                 break;
             }
             case CANCEL_RES:
             {
+                pthread_mutex_lock( &(args->lock_seat) );
+                if ( args->users->seat == q->data && args->users->signup != -1 ){
+                    args->seats[q->data] = -1;
+                    args->users->seat = -1;
+                    buffer = q->data;
+                }
+                else 
+                    buffer = -1; 
+                pthread_mutex_unlock( &(args->lock_seat) );
+
+                send( connfd, &buffer, sizeof(int), 0 );
                 break;
             }
             case LOGOUT:
             {
+                pthread_mutex_unlock( &(args->lock_users[logInFlag]) );
+                logInFlag = -1;
+                buffer = 1;
+                send( connfd, &buffer, sizeof(int), 0 );
                 break;
             }
         }
